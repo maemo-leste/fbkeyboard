@@ -57,13 +57,18 @@ const static struct libinput_interface interface = {
 
 int main(int argc, char *argv[])
 {
+	if (argc != 2) {
+		printf("usage: %s [FILE]\nA font file is required.\n", argv[0]);
+		return -1;
+	}
+	
 	int layoutuse = 0;
 
 	size_t xres, yres, line_length;
 	int fbfd = init_fb(&xres, &yres, &line_length);
 	int hight = (yres / 3 + xres / 2) / 2;
 
-	if (!init_font(font, hight/5))
+	if (!init_font(argv[1], hight/5))
 		return -1;
 	
 	if (!init_uinput())
