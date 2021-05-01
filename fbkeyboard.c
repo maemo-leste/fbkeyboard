@@ -2,6 +2,7 @@
 fbkeyboard.c : framebackbufferfer softkeyboard for touchscreen devices
 
 Copyright 2017 Julian Winkler <julia.winkler1@web.de>
+Copyright 2021 Carl Philipp Klemm <carl@uvos.xyz>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
