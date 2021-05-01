@@ -1,0 +1,16 @@
+Source: fbkeyboard
+Section: base
+Priority: optional
+Maintainer: Ivan J. <parazyd@dyne.org>
+Build-Depends:
+ debhelper-compat (= 12),
+Standards-Version: 4.3.0
+
+Package: fbkeyboard
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libfreetype6-dev,
+ libinput-dev,
+ libudev-dev,
+Description: A simple on-screen keyboard for fbdev
