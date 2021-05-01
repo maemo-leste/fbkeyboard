@@ -27,14 +27,32 @@ Copyright 2017 Julian Winkler <julia.winkler1@web.de>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <libinput.h>
+#include <errno.h>
+#include <libudev.h>
 
 #include "layout.h"
 #include "draw.h"
 #include "uinput.h"
 
-const char *font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
-const char *device = "/dev/input/by-path/platform-mapphone_touchscreen-event";
 
+const char *font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+
+static int open_restricted(const char *path, int flags, void *user_data)
+{
+	int fd = open(path, flags);
+	return fd < 0 ? -errno : fd;
+}
+ 
+static void close_restricted(int fd, void *user_data)
+{
+	close(fd);
+}
+ 
+const static struct libinput_interface interface = {
+	.open_restricted = open_restricted,
+	.close_restricted = close_restricted,
+};
 
 int main(int argc, char *argv[])
 {
@@ -50,39 +68,18 @@ int main(int argc, char *argv[])
 	if (!init_uinput())
 		return -2;
 
-	int fdinput;
-	struct input_absinfo abs_x, abs_y;
-	int absolute_x, absolute_y;
-	int touchdown, pressed = -1, released, key;
-	struct input_event ie;
 	
-	if (device) {
-		if ((fdinput = open(device, O_RDONLY)) == -1) {
-			perror("failed to open input device node");
-			return -1;
-		}
-	} else {
-		DIR *inputdevs = opendir("/dev/input");
-		struct dirent *dptr;
-		fdinput = -1;
-		while (dptr = readdir(inputdevs)) {
-			if ((fdinput = openat(dirfd(inputdevs), dptr->d_name, O_RDONLY)) != -1
-			    && ioctl(fdinput, EVIOCGBIT(0, sizeof(key)), &key) != -1 && key >> EV_ABS & 1)
-				break;
-			if (fdinput != -1) {
-				close(fdinput);
-				fdinput = -1;
-			}
-		}
-		if (fdinput == -1) {
-			fprintf(stderr, "no absolute axes device found in /dev/input\n");
-			return -1;
-		}
-	}
-	if (ioctl(fdinput, EVIOCGABS(ABS_MT_POSITION_X), &abs_x) == -1)
-		perror("error: getting touchscreen size");
-	if (ioctl(fdinput, EVIOCGABS(ABS_MT_POSITION_Y), &abs_y) == -1)
-		perror("error: getting touchscreen size");
+	struct udev *udev_cntxt = udev_new();
+	struct libinput *li;
+	struct libinput_event *event = NULL;
+	if (!udev_cntxt)
+		return -3;
+	
+	if(!(li = libinput_udev_create_context(&interface, NULL, udev_cntxt)))
+		return -4;
+	
+	libinput_udev_assign_seat(li, "seat0");
+	
 
 	char *backbuffer = malloc(line_length * hight);
 	if (backbuffer == 0) {
@@ -91,39 +88,33 @@ int main(int argc, char *argv[])
 	}
 	//fill background gray
 	fill_rect(backbuffer, 0, 0, xres, hight, 0x444444);
+	
+	int pressed = -1;
 
 	while (true) {
-
 		draw_keyboard(backbuffer, xres, hight, pressed, layoutuse);
 		lseek(fbfd, line_length * (yres - hight), SEEK_SET);
 		write(fbfd, backbuffer, line_length * hight);
+		
 
-		released = 0;
-		while (read(fdinput, &ie, sizeof(struct input_event)) && !(ie.type == EV_SYN && ie.code == SYN_REPORT)) {
-			if (ie.type == EV_ABS) {
-				switch (ie.code) {
-				case ABS_MT_POSITION_X:
-					absolute_x = ie.value;
-					touchdown = 1;
-					key = 0;
-					break;
-				case ABS_MT_POSITION_Y:
-					absolute_y = ie.value;
-					touchdown = 1;
-					key = 0;
-					break;
-				case ABS_MT_TRACKING_ID:
-					if (ie.value == -1) {
-						touchdown = 0;
-						released = 1;
-					}
-					break;
+		int absolute_x = 0;
+		int absolute_y = 0;
+		bool touchdown = false;
+		bool released = false;
+		libinput_dispatch(li);
+		event = libinput_get_event(li);
+		if (event) {
+			if (libinput_event_get_type(event) == LIBINPUT_EVENT_TOUCH_DOWN) {
+				touchdown = true;
+				struct libinput_event_touch *touch = libinput_event_get_touch_event(event);
+				if (touch) {
+					absolute_x = libinput_event_touch_get_x_transformed(touch, xres);
+					absolute_y = libinput_event_touch_get_y_transformed(touch, yres);
 				}
-			}
-			if (ie.type == EV_SYN && ie.code == SYN_MT_REPORT && key) {
-				touchdown = 0;
-				released = 1;
-			}
+			 }
+			 else if(libinput_event_get_type(event) == LIBINPUT_EVENT_TOUCH_UP) {
+				 released = true;
+			 }
 		}
 
 		if (released && pressed != -1) {
@@ -139,38 +130,40 @@ int main(int argc, char *argv[])
 				uinput_send_key(keys[2][pressed - 28]);
 			else if (pressed == 39)	//second page
 				layoutuse ^= 2;
+			
+			pressed = -1;
 		}
 
-		pressed = -1;
+		
 		if (touchdown) {
-			switch (((absolute_y - abs_y.maximum) * yres +
-				 abs_y.maximum * hight) / (hight/5) / abs_y.maximum) {
+			switch (((absolute_y - yres) * yres +
+				 yres * hight) / (hight/5) / yres) {
 			case 0:
-				pressed = 29 + absolute_x * 7 / abs_x.maximum;
+				pressed = 29 + absolute_x * 7 / xres;
 				break;
 			case 1:
-				pressed = absolute_x * 10 / abs_x.maximum;
+				pressed = absolute_x * 10 / xres;
 				break;
 			case 2:
-				if (absolute_x > abs_x.maximum / 20 && absolute_x < abs_x.maximum * 19 / 20)
-					pressed = 10 + (absolute_x * 10 - abs_x.maximum / 2) / abs_x.maximum;
+				if (absolute_x > xres / 20 && absolute_x < xres * 19 / 20)
+					pressed = 10 + (absolute_x * 10 - xres / 2) / xres;
 				break;
 			case 3:
-				if (absolute_x < abs_x.maximum * 3 / 20)
+				if (absolute_x < xres * 3 / 20)
 					pressed = 28;	//shift
-				else if (absolute_x < abs_x.maximum * 17 / 20)
-					pressed = 19 + (absolute_x * 10 - abs_x.maximum * 3 / 2) / abs_x.maximum;
+				else if (absolute_x < xres * 17 / 20)
+					pressed = 19 + (absolute_x * 10 - xres * 3 / 2) / xres;
 				else
 					pressed = 38;	//bksp
 				break;
 			case 4:
-				if (absolute_x < abs_x.maximum * 3 / 20)
+				if (absolute_x < xres * 3 / 20)
 					pressed = 39;	//123
-				else if (absolute_x < abs_x.maximum * 5 / 20)
+				else if (absolute_x < xres * 5 / 20)
 					pressed = 26;
-				else if (absolute_x < abs_x.maximum * 15 / 20)
+				else if (absolute_x < xres * 15 / 20)
 					pressed = 36;	//space
-				else if (absolute_x < abs_x.maximum * 17 / 20)
+				else if (absolute_x < xres * 17 / 20)
 					pressed = 27;
 				else
 					pressed = 37;	//enter
@@ -178,4 +171,9 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	
+	libinput_unref(li);
+	udev_unref(udev_cntxt);
+	
+	return 0;
 }
