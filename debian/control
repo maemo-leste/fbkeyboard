@@ -13,5 +13,5 @@ Standards-Version: 4.3.0
 Package: fbkeyboard
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, openrc
 Description: A simple on-screen keyboard for fbdev

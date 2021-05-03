@@ -1,3 +1,10 @@
+fbkeyboard (0.21) unstable; urgency=medium
+
+  * Use poll() instead of litteraly polling
+  * add runlevel and initscript for fbkeyboard shell mode
+
+ -- uvos <devnull@uvos.xyz>  Sat, 03 May 2021 22:14:44 +0100
+
 fbkeyboard (0.2) unstable; urgency=medium
 
   * Initial Leste packaging
