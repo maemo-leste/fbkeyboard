@@ -1,6 +1,6 @@
 #!/sbin/openrc-run
 
-description="fbkeyboard
+description="fbkeyboard"
 name="fbkeyboard"
 
 start() {
