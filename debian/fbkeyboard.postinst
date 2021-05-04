@@ -1,5 +1,5 @@
 #!/bin/sh
 
 install -d /etc/runlevels/shell/
-rc-update del fbkeyboard default
-rc-update add fbkeyboard shell
+rc-update del fbkeyboard default || true
+rc-update add fbkeyboard shell   || true

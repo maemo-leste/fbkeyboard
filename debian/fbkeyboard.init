@@ -1,7 +1,7 @@
 #!/sbin/openrc-run
 
-description="This init script starts charge mode script for leste"
-name="Charge mode"
+description="fbkeyboard
+name="fbkeyboard"
 
 start() {
 	font=$(fc-match --format=%{file} DejaVuSans.tff)
