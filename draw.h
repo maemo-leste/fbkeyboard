@@ -20,6 +20,7 @@ Copyright 2021 Carl Philipp Klemm <carl@uvos.xyz>
 
 #pragma once
 #include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 bool init_font(const char *font, unsigned int hight);
@@ -32,4 +33,4 @@ void draw_text(char *buf, unsigned int x, unsigned int y, unsigned int hight, co
 
 void draw_keyboard(char *buf, unsigned int width, unsigned int height, int pressed_key, size_t layoutuse);
 
-int init_fb(int *x_res, int *y_res, size_t *llength);
+int init_fb(uint32_t *x_res, uint32_t *y_res, size_t *llength);

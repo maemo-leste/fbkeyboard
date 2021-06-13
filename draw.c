@@ -20,7 +20,6 @@ Copyright 2021 Carl Philipp Klemm <carl@uvos.xyz>
 
 #include "draw.h"
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <linux/fb.h>
@@ -35,7 +34,7 @@ static FT_Face face = NULL;
 
 static size_t line_length;
 
-int init_fb(int *x_res, int *y_res, size_t *llength)
+int init_fb(uint32_t *x_res, uint32_t *y_res, size_t *llength)
 {
 	struct fb_var_screeninfo vinfo;
 	struct fb_fix_screeninfo finfo;

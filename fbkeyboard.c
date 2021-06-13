@@ -65,7 +65,8 @@ int main(int argc, char *argv[])
 	
 	int layoutuse = 0;
 
-	size_t xres, yres, line_length;
+	uint32_t xres, yres;
+	size_t line_length;
 	int fbfd = init_fb(&xres, &yres, &line_length);
 	int hight = (yres / 3 + xres / 2) / 2;
 
@@ -133,7 +134,7 @@ int main(int argc, char *argv[])
 					uinput_send_key(keys[layoutuse >> 1][pressed]);
 				else if (pressed == 28) {
 					layoutuse ^= 1;
-					uinput_send_modifier(KEY_LEFTCTRL,  layoutuse & 1);
+					uinput_send_modifier(KEY_LEFTSHIFT,  layoutuse & 1);
 				}
 				else if (pressed == 29)
 					uinput_send_modifier(KEY_LEFTCTRL, 1);
