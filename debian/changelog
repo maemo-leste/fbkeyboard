@@ -1,3 +1,7 @@
+fbkeyboard (0.22) unstable; urgency=medium
+  * fix shift key
+ -- Uvos <carl@uvos.xyz>  Mon, 14 Jun 2021 10:00:00 +0100
+
 fbkeyboard (0.21) unstable; urgency=medium
 
   * Use poll() instead of litteraly polling
